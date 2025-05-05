@@ -1,12 +1,13 @@
-name: Export CoreML Model
+name: Export CoreML
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   export-coreml:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -14,15 +15,39 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.8'
 
       - name: Install dependencies
         run: |
-          pip install torch==2.5.0 torchvision==0.16.0 diffusers huggingface_hub coremltools
+          python -m pip install --upgrade pip
+          pip install torch diffusers huggingface_hub coremltools
 
-      - name: Convert model to CoreML
+      - name: Run export script
         run: |
+          python -c "
           import torch
           from diffusers import StableDiffusionPipeline
-          from huggingface_hub import snapshot_download
-          import
+          from huggingface_hub import hf_hub_download
+          import coremltools as ct
+          import os
+
+          # Load the model
+          pipe = StableDiffusionPipeline.from_pretrained(
+              'CompVis/stable-diffusion-v1-4',
+              torch_dtype=torch.float32,
+          )
+          pipe.to('cpu')
+
+          # Dummy input for tracing
+          sample_input = pipe.tokenizer('a cat in a hat', return_tensors='pt').input_ids
+
+          # Export to CoreML
+          mlmodel = ct.convert(
+              lambda x: pipe(prompt='a cat in a hat').images[0],
+              inputs=[ct.TensorType(shape=sample_input.shape)],
+          )
+
+          # Save as .mlpackage
+          os.makedirs('ColoringBook.mlpackage', exist_ok=True)
+          mlmodel.save('ColoringBook.mlpackage/ColoringBook.mlmodel')
+          "
