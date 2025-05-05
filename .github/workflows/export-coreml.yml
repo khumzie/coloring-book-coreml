@@ -42,7 +42,7 @@ jobs:
             ColoringBook.mlpackage ColoringBook.zip
 
       - name: Upload the artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: ColoringBook-MLPackage
           path: ColoringBook.zip
