@@ -2,24 +2,44 @@ import os
 import torch
 import coremltools as ct
 from diffusers import StableDiffusionPipeline
+import numpy as np
 
 def main():
-    # Load the model with low CPU memory usage
+    # Load the model
     pipe = StableDiffusionPipeline.from_pretrained(
         "CompVis/stable-diffusion-v1-4",
         torch_dtype=torch.float32,
-        low_cpu_mem_usage=True
     )
     pipe.to("cpu")
 
-    # Dummy input for tracing
-    sample_input = pipe.tokenizer("a cat in a hat", return_tensors="pt").input_ids
+    # Create a scripted model
+    class StableDiffusionWrapper(torch.nn.Module):
+        def __init__(self, pipe):
+            super().__init__()
+            self.pipe = pipe
 
-    # Export to CoreML with PyTorch as source
+        def forward(self, prompt):
+            return self.pipe(prompt).images[0]
+
+    model = StableDiffusionWrapper(pipe)
+    scripted_model = torch.jit.script(model)
+
+    # Save the scripted model
+    torch.jit.save(scripted_model, "model.pt")
+
+    # Convert to CoreML
     mlmodel = ct.convert(
-        lambda x: pipe(prompt="a cat in a hat").images[0],
-        inputs=[ct.TensorType(shape=sample_input.shape)],
-        source="pytorch"
+        "model.pt",
+        source="pytorch",
+        convert_to="mlprogram",
+        minimum_deployment_target=ct.target.iOS15,
+        inputs=[
+            ct.TensorType(
+                name="prompt",
+                shape=[1, 77],  # Default token sequence length for SD
+                dtype=np.int32
+            )
+        ]
     )
 
     # Save as .mlpackage
