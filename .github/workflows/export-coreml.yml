@@ -8,6 +8,8 @@ on:
 jobs:
   export:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
       
@@ -23,10 +25,11 @@ jobs:
 
       - name: Export to CoreML
         run: python export_coreml.py
-
-      - name: Upload CoreML Model
-        uses: actions/upload-artifact@v2
-        with:
-          name: ColoringBook-CoreML
-          path: ColoringBook.mlpackage
-          if-no-files-found: error
+        
+      - name: Commit and push if changed
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add ColoringBook.mlpackage
+          git commit -m "Update CoreML model" || exit 0
+          git push
