@@ -1,18 +1,19 @@
+# .github/workflows/export-coreml.yml
 name: Export MrHup/coloring-book to Core ML
 
+# Manual trigger
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    # Use a macOS VM so coremltools works
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Install Python and dependencies
+      - name: Install Python & dependencies
         run: |
           brew install python@3.10
           python3 -m pip install --upgrade pip
@@ -34,12 +35,13 @@ jobs:
             --quantization fp16 \
             --output ColoringBook.mlpackage
 
-      - name: Zip for download
+      - name: Zip the Core ML bundle
         run: |
+          # 'ditto' preserves metadata on macOS
           ditto -c -k --sequesterRsrc --keepParent \
             ColoringBook.mlpackage ColoringBook.zip
 
-      - name: Upload zip artifact
+      - name: Upload the artifact
         uses: actions/upload-artifact@v3
         with:
           name: ColoringBook-MLPackage
