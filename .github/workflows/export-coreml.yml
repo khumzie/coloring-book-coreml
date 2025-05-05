@@ -1,61 +1,28 @@
-name: Export CoreML ColoringBook
+name: Export CoreML Model
 
 on:
   workflow_dispatch:
 
 jobs:
   export-coreml:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install torch==2.6.0 torchvision==0.15.2 torchaudio==2.6.0
-          pip install diffusers coremltools huggingface_hub
+          pip install torch==2.5.0 torchvision==0.16.0 diffusers huggingface_hub coremltools
 
-      - name: Run Conversion Script
+      - name: Convert model to CoreML
         run: |
-          mkdir -p output
-          python3 -c "
-import torch
-from diffusers import StableDiffusionPipeline
-from huggingface_hub import snapshot_download
-import coremltools as ct
-
-# Download model from Hugging Face
-model_dir = snapshot_download('MrHup/coloring-book')
-pipe = StableDiffusionPipeline.from_pretrained(model_dir, torch_dtype=torch.float16)
-
-# Dummy input for tracing
-dummy_input = torch.randn(1, 4, 64, 64)
-
-# Convert dummy input (simulate conversion)
-coreml_model = ct.convert(
-    dummy_input,
-    inputs=[ct.TensorType(shape=dummy_input.shape)],
-)
-
-# Save the CoreML model
-coreml_model.save('output/ColoringBook.mlpackage')
-"
-
-      - name: Zip the model
-        run: |
-          cd output
-          zip -r ColoringBook.zip ColoringBook.mlpackage
-          cd ..
-
-      - name: Upload ZIP as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ColoringBook-CoreML
-          path: output/ColoringBook.zip
+          import torch
+          from diffusers import StableDiffusionPipeline
+          from huggingface_hub import snapshot_download
+          import
