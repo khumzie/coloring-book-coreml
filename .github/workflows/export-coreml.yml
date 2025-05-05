@@ -12,14 +12,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-        with:
-          lfs: true
       
-      - name: Set up Git LFS
-        run: |
-          brew install git-lfs || true
-          git lfs install
-          
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -36,16 +29,16 @@ jobs:
       - name: Convert to mlmodelc
         run: |
           xcrun coremlcompiler compile ColoringBook.mlpackage/Data/com.apple.CoreML/model.mlmodel ColoringBook.mlmodelc
-          
-      - name: Configure Git LFS and push
+          tar -czf ColoringBook.mlmodelc.tar.gz ColoringBook.mlmodelc/
+
+      - name: Create Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git lfs track "*.bin"
-          git lfs track "*.mlmodel"
-          git add .gitattributes
-          find . -name "*.bin" -o -name "*.mlmodel" | xargs git add
-          git add ColoringBook.mlpackage ColoringBook.mlmodelc
-          git commit -m "Update CoreML model with compiled version" || exit 0
-          git lfs push --all origin main
-          git push origin main
+          # Create a release with current date
+          release_name="CoreML-Model-$(date +'%Y%m%d')"
+          gh release create $release_name ColoringBook.mlmodelc.tar.gz \
+            --title "CoreML Model Release $(date +'%Y-%m-%d')" \
+            --notes "Compiled CoreML model for iOS" \
+            --draft=false
