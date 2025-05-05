@@ -1,0 +1,46 @@
+name: Export MrHup/coloring-book to Core ML
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Use a macOS VM so coremltools works
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Python and dependencies
+        run: |
+          brew install python@3.10
+          python3 -m pip install --upgrade pip
+          pip3 install \
+            torch==2.6.0 \
+            torchvision==2.6.0 \
+            torchaudio==2.6.0 \
+            diffusers==0.21.0 \
+            transformers \
+            huggingface_hub==0.16.4 \
+            coremltools \
+            git+https://github.com/huggingface/exporters.git
+
+      - name: Export Core ML bundle
+        run: |
+          python3 -m exporters.coreml \
+            --model-id MrHup/coloring-book \
+            --export-type mlprogram \
+            --quantization fp16 \
+            --output ColoringBook.mlpackage
+
+      - name: Zip for download
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            ColoringBook.mlpackage ColoringBook.zip
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ColoringBook-MLPackage
+          path: ColoringBook.zip
