@@ -17,7 +17,7 @@ jobs:
       
       - name: Set up Git LFS
         run: |
-          brew install git-lfs
+          brew install git-lfs || true
           git lfs install
           
       - name: Set up Python
@@ -33,12 +33,19 @@ jobs:
       - name: Export to CoreML
         run: python export_coreml.py
         
+      - name: Convert to mlmodelc
+        run: |
+          xcrun coremlcompiler compile ColoringBook.mlpackage/Data/com.apple.CoreML/model.mlmodel ColoringBook.mlmodelc
+          
       - name: Configure Git LFS and push
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git lfs track "*.mlpackage/Data/com.apple.CoreML/weights/*.bin"
+          git lfs track "*.bin"
+          git lfs track "*.mlmodel"
           git add .gitattributes
-          git add ColoringBook.mlpackage
-          git commit -m "Update CoreML model with Git LFS" || exit 0
-          git push
+          find . -name "*.bin" -o -name "*.mlmodel" | xargs git add
+          git add ColoringBook.mlpackage ColoringBook.mlmodelc
+          git commit -m "Update CoreML model with compiled version" || exit 0
+          git lfs push --all origin main
+          git push origin main
