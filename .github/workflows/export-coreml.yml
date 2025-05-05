@@ -23,10 +23,3 @@ jobs:
 
       - name: Export to CoreML
         run: python export_coreml.py
-
-      - name: Upload CoreML model
-        uses: actions/upload-artifact@v2  # Changed from v3 to v2 for better compatibility
-        with:
-          name: ColoringBook-CoreML
-          path: ColoringBook.mlpackage
-          if-no-files-found: error
